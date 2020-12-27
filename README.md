@@ -22,4 +22,5 @@ TODO
 
 
 ## Known Issues
-1. TODO
+1. Security: Instance can do anything with s3 - should be limited to read/write from current bucket + write to backup bucket
+2. Security: Instance can do anything with route53 - should be limited to upsert on the minecraft.domain.com
