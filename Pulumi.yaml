@@ -1,0 +1,3 @@
+name: minecraft
+runtime: nodejs
+description: Minecraft server in Typescript
