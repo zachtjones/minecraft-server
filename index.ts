@@ -1,6 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 import * as axios from "axios";
+import { toUUID } from 'to-uuid'
 
 const config = new pulumi.Config();
 
@@ -73,7 +74,6 @@ echo "pvp=false" >> /minecraft/server.properties
 echo "snooper-enabled=false" >> /minecraft/server.properties
 echo "spawn-protection=0" >> /minecraft/server.properties
 echo "view-distance=12" >> /minecraft/server.properties
-echo "white-list=true" >> /minecraft/server.properties
 
 echo "[Unit]" > /etc/systemd/system/minecraft.service
 echo "Description=Minecraft Service" >> /etc/systemd/system/minecraft.service
@@ -88,7 +88,7 @@ echo "ExecStart=/usr/bin/java ${config.get('javaArgs') || ''} -jar /minecraft/se
 
 systemctl daemon-reload
 
-echo '${await computeOperatorsFileString()}' > /minecraft/ops2.json
+echo '${await computeOperatorsFileString()}' > /minecraft/ops.json
 echo '${await computePlayersFileString()}' > /minecraft/whitelist.json
 
 # create automated backups
@@ -176,8 +176,8 @@ aws route53 change-resource-record-sets --hosted-zone-id ${record.zoneId} --chan
     })
 
     const asg = new aws.autoscaling.Group('minecraft-asg', {
-        minSize: 0,
-        maxSize: 0,
+        minSize: 1,
+        maxSize: 1,
         desiredCapacity: 1,
         launchConfiguration: launch,
         availabilityZones: availabilityZones,
@@ -288,7 +288,7 @@ async function computeOperatorsFileString(): Promise<string> {
     for (const userName of opsConfig) {
         const user = await lookupUser(userName)
         operators.push({
-            "uuid": user.id,
+            "uuid": toUUID(user.id),
             "name": user.name,
             "level": 4,
             "bypassesPlayerLimit": false
@@ -303,7 +303,7 @@ async function computePlayersFileString(): Promise<string> {
     for (const userName of opsConfig) {
         const user = await lookupUser(userName)
         players.push({
-            "uuid": user.id,
+            "uuid": toUUID(user.id),
             "name": user.name
         });
     }
