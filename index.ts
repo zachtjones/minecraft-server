@@ -175,10 +175,11 @@ aws route53 change-resource-record-sets --hosted-zone-id ${record.zoneId} --chan
         })
     })
 
+    const capacity = config.getBoolean('on') || config.getBoolean('on') === undefined ? 1 : 0
     const asg = new aws.autoscaling.Group('minecraft-asg', {
-        minSize: 1,
-        maxSize: 1,
-        desiredCapacity: 1,
+        minSize: capacity,
+        maxSize: capacity,
+        desiredCapacity: capacity,
         launchConfiguration: launch,
         availabilityZones: availabilityZones,
         tags: [{
