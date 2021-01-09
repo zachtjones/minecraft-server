@@ -106,7 +106,7 @@ aws s3 cp --quiet s3://${latestBucket.id}/world.zip "s3://${backupsBucket.id}/wo
 chmod +x /minecraft/copy.sh
 crontab<<EOF
 */15 * * * * /minecraft/backup.sh
-* */4 * * * /minecraft/copy.sh
+0 */4 * * * /minecraft/copy.sh
 EOF
 
 chown -R ec2-user:ec2-user /minecraft
