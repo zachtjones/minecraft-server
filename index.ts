@@ -93,6 +93,7 @@ echo '${await computePlayersFileString()}' > /minecraft/whitelist.json
 
 # create automated backups
 cat << EOF > /minecraft/backup.sh
+cd /minecraft
 zip -r -9 --filesync /minecraft/world.zip /minecraft/world/
 aws s3 cp --quiet /minecraft/world.zip s3://${latestBucket.id}/world.zip
 EOF
@@ -262,6 +263,13 @@ async function determineSpotPricePerHour(): Promise<SpotPrices> {
 }
 
 async function determineServerVersion() {
+    const version = config.get('version')
+    if (version) {
+        return {
+            sha: version,
+            version: version
+        }
+    }
     const response = await axios.default.get<String>('https://www.minecraft.net/en-us/download/server')
     const match = response.data.match(/"https:\/\/launcher\.mojang\.com\/v1\/objects\/(.*?)\/server.jar".*?\>minecraft_server\.(.*?)\.jar\</);
     if (match == null) {
