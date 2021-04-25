@@ -94,14 +94,14 @@ echo '${await computePlayersFileString()}' > /minecraft/whitelist.json
 # create automated backups
 cat << EOF > /minecraft/backup.sh
 cd /minecraft
-zip -r -9 --filesync /minecraft/world.zip /minecraft/world/
-aws s3 cp --quiet /minecraft/world.zip s3://${latestBucket.id}/world.zip
+zip -r -9 --filesync world.zip world/
+aws s3 cp --no-progress world.zip s3://${latestBucket.id}/world.zip
 EOF
 
 chmod +x /minecraft/backup.sh
 
 echo 'NOW=\`date -Iseconds\`
-aws s3 cp --quiet s3://${latestBucket.id}/world.zip "s3://${backupsBucket.id}/world-\$NOW.zip" --storage-class STANDARD_IA
+aws s3 cp --no-progress s3://${latestBucket.id}/world.zip "s3://${backupsBucket.id}/world-\$NOW.zip" --storage-class STANDARD_IA
 ' > /minecraft/copy.sh
 
 chmod +x /minecraft/copy.sh
