@@ -12,7 +12,7 @@ async function go() {
     const securityGroup = await createMinecraftSecurityGroup()
 
     const { availabilityZones, minPrice } = await determineSpotPricePerHour()
-    const maxPrice = minPrice * 1.15
+    const maxPrice = minPrice * 1.5
 
     const record = await createRoutingRecord()
 
@@ -28,7 +28,7 @@ async function go() {
         }]
     })
 
-    const amazon_linux_2_ami = await aws.getAmi({
+    const amazon_linux_2_ami = await aws.ec2.getAmi({
         mostRecent: true,
         filters: [
             {
@@ -45,7 +45,10 @@ async function go() {
 
     const userData = pulumi.interpolate `
 #!/usr/bin/env bash
-yum -y install java-11-amazon-corretto-headless
+rpm --import https://yum.corretto.aws/corretto.key
+curl -L -o /etc/yum.repos.d/corretto.repo https://yum.corretto.aws/corretto.repo
+yum install -y java-17-amazon-corretto-devel
+
 
 mkdir /minecraft
 cd /minecraft
@@ -57,7 +60,7 @@ unzip world.zip
 set -e
 
 # pull down latest server.jar
-wget --quiet https://launcher.mojang.com/v1/objects/${sha}/server.jar
+wget --quiet https://piston-data.mojang.com/v1/objects/${sha}/server.jar
 
 echo '#By changing the setting below to TRUE you are indicating your agreement to our EULA (https://account.mojang.com/documents/minecraft_eula).
 #Sat May 09 18:11:14 UTC 2020
@@ -67,13 +70,15 @@ eula=true' > eula.txt
 echo "motd=${config.get('title') || 'Minecraft World!'}" > /minecraft/server.properties
 echo "enforce-whitelist=true" >> /minecraft/server.properties
 echo "white-list=true" >> /minecraft/server.properties
-echo "force-gamemode=true" >> /minecraft/server.properties
+echo "force-gamemode=false" >> /minecraft/server.properties
 echo "level-name=world" >> /minecraft/server.properties
-echo "max-players=5" >> /minecraft/server.properties
-echo "pvp=false" >> /minecraft/server.properties
+echo "max-players=20" >> /minecraft/server.properties
+echo "pvp=true" >> /minecraft/server.properties
+echo "difficulty=hard" >> /minecraft/server.properties
 echo "snooper-enabled=false" >> /minecraft/server.properties
 echo "spawn-protection=0" >> /minecraft/server.properties
-echo "view-distance=12" >> /minecraft/server.properties
+echo "view-distance=18" >> /minecraft/server.properties
+echo "simulation-distance=18" >> /minecraft/server.properties
 
 echo "[Unit]" > /etc/systemd/system/minecraft.service
 echo "Description=Minecraft Service" >> /etc/systemd/system/minecraft.service
@@ -163,17 +168,19 @@ aws route53 change-resource-record-sets --hosted-zone-id ${record.zoneId} --chan
         }
     })
 
-    const launch = new aws.ec2.LaunchConfiguration('minecraft_launch_configuration', {
-        associatePublicIpAddress: true,
+    const instanceProfile = new aws.iam.InstanceProfile('minecraft-instance-profile', {
+        role: role
+    })
+
+    const launchTemplate = new aws.ec2.LaunchTemplate('minecraft-launch-template', {
         imageId: amazon_linux_2_ami.id,
-        keyName: config.require('keyName'),
         instanceType: config.require('instanceType'),
-        spotPrice: maxPrice.toString(),
-        userData: userData,
-        securityGroups: [securityGroup.id],
-        iamInstanceProfile: new aws.iam.InstanceProfile('minecraft-instance-profile', {
-            role: role
-        })
+        keyName: config.require('keyName'),
+        iamInstanceProfile: {
+            name: instanceProfile.name
+        },
+        securityGroupNames: [securityGroup.name],
+        userData: userData.apply(value => Buffer.from(value, 'utf8').toString('base64')),
     })
 
     const capacity = config.getBoolean('on') || config.getBoolean('on') === undefined ? 1 : 0
@@ -181,7 +188,26 @@ aws route53 change-resource-record-sets --hosted-zone-id ${record.zoneId} --chan
         minSize: capacity,
         maxSize: capacity,
         desiredCapacity: capacity,
-        launchConfiguration: launch,
+        mixedInstancesPolicy: {
+            instancesDistribution: {
+                spotAllocationStrategy: 'capacity-optimized-prioritized',
+                spotMaxPrice: `${maxPrice}`
+            },
+            launchTemplate: {
+                launchTemplateSpecification: {
+                    launchTemplateId: launchTemplate.id,
+                    version: '$Latest'
+                },
+                overrides: [
+                    {
+                        instanceType: config.require('instanceType')
+                    },
+                    {
+                        instanceType: config.require('alternateInstanceType')
+                    }
+                ]
+            }
+        },
         availabilityZones: availabilityZones,
         tags: [{
             key: 'project',
@@ -194,7 +220,8 @@ aws route53 change-resource-record-sets --hosted-zone-id ${record.zoneId} --chan
         computeMaxCostPerMonth: maxPrice * 24 * 365 / 12,
         computeExpectedCostPerMonth: minPrice * 24 * 365 / 12,
         version,
-        domain: record.name
+        domain: record.name,
+        availabilityZones,
         // things we want in the exports
     }
 }
@@ -287,8 +314,13 @@ interface User {
 }
 
 async function lookupUser(userName: string): Promise<User> {
-    const response = await axios.default.get<any>(`https://api.mojang.com/users/profiles/minecraft/${userName}`)
-    return response.data
+    try {
+        const response = await axios.default.get<any>(`https://api.mojang.com/users/profiles/minecraft/${userName}`)
+        return response.data
+    } catch (error) {
+        console.error(`Failed to look up ${userName}`)
+        throw error
+    }
 }
 
 async function computeOperatorsFileString(): Promise<string> {
@@ -337,3 +369,4 @@ export const computeCostPerMonthExpected = goPromise.then(res => res.computeExpe
 export const computeCostPerMonthMax = goPromise.then(res => res.computeMaxCostPerMonth)
 export const minecraftVersion = goPromise.then(res => res.version)
 export const domain = goPromise.then(res => res.domain)
+export const availabilityZones = goPromise.then(res => res.availabilityZones)
