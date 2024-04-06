@@ -1,0 +1,11 @@
+services:
+  minecraft:
+    image: "itzg/minecraft-server:latest"
+    environment:
+      - EULA=TRUE
+      - VERSION=24w13a
+      - JVM_XX_OPTS=-XX:MaxRAMPercentage=75
+      - ONLINE_MODE=false # Disable the checks for authentication, since the container can't reach the network
+    ports:
+      - "25565:25565"
+

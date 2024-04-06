@@ -1,7 +1,2 @@
-# App-specific
-minecraft_key_pair.pem
-
-# Dependency directories
-node_modules/
-.npm
-
+app/build
+.gradle
