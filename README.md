@@ -25,3 +25,11 @@ Preview created resources:
 
 Deploy: (will prompt for review, will need to select `yes`)
 `pulumi up`
+
+## Notes
+
+I created this project to learn about all the AWS resources needed.
+
+If you are wanting to create a Minecraft server,
+I would recommend checking out https://github.com/vatertime/minecraft-spot-pricing,
+as that has all the features of this and more.
