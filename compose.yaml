@@ -1,11 +1,28 @@
+version: "3"
+name: "minecraft-server"
 services:
   minecraft:
     image: "itzg/minecraft-server:latest"
+    network_mode: "bridge"
     environment:
       - EULA=TRUE
-      - VERSION=24w13a
-      - JVM_XX_OPTS=-XX:MaxRAMPercentage=75
-      - ONLINE_MODE=false # Disable the checks for authentication, since the container can't reach the network
-    ports:
-      - "25565:25565"
+      - WHITELIST=bose23,zacari23,TliansO,AwayObject0
+      - TZ=America/Los_Angeles
+      - MODE=survival
+      - VIEW_DISTANCE=14
+      - DIFFICULTY=normal
+      - LEVEL_TYPE=default
+      - MODRINTH_PROJECTS=lithium,simple-voice-chat
+      - MAX_PLAYERS=10
+      - OPS=bose23,zacari23,TliansO,AwayObject0
+      - MEMORY=7G
+      - SEED=-390989114756324017
+      - VERSION=1.20.6
+      - TYPE=FABRIC
+    volumes:
+      - "~/Documents/Minecraft/server:/data"
+      #- ONLINE_MODE=false # Disable the checks for authentication, since the container can't reach the network
+    ports: 
+     - "25565:25565" # Minecraft main port - TCP
+     - "24454:24454" # Simple Voice Chat -- UDP
 

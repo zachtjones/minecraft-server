@@ -1,7 +1,0 @@
-name: minecraft-server
-runtime: java
-description: Create a minecraft server using AWS
-config:
-  pulumi:tags:
-    value:
-      pulumi:template: java-gradle
