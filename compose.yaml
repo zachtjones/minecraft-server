@@ -19,10 +19,9 @@ services:
       - SEED=-390989114756324017
       - VERSION=1.21
       - TYPE=FABRIC
-    volumes:
+    volumes: # Make sure this matches the mounts in docker desktop (or similar product you're using to run)
       - "~/Documents/Minecraft/server:/data"
-      #- ONLINE_MODE=false # Disable the checks for authentication, since the container can't reach the network
-    ports: 
+    ports:
      - "25565:25565" # Minecraft main port - TCP
      - "24454:24454" # Simple Voice Chat -- UDP
 
